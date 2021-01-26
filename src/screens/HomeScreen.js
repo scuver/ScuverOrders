@@ -143,10 +143,10 @@ export default class HomeScreen extends React.Component {
       console.log('Message handled in the background!', remoteMessage);
     });
     messaging().onMessage(async (remoteMessage) => {
-      Alert.alert(
-        remoteMessage.notification.title,
-        remoteMessage.notification.body,
-      );
+      // Alert.alert(
+      //   remoteMessage.notification.title,
+      //   remoteMessage.notification.body,
+      // );
     });
 
     AsyncStorage.getItem('fcm_token').then((u: any) => {
