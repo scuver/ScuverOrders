@@ -10,9 +10,9 @@ import {
 import AsyncStorage from '@react-native-community/async-storage';
 import {Order} from '../model/order';
 import moment from 'moment';
-import database from '@react-native-firebase/database';
 import messaging from '@react-native-firebase/messaging';
-import {DataTable} from 'react-native-paper';
+import firestore from '@react-native-firebase/firestore';
+import {User} from '../model/user';
 
 const styles = StyleSheet.create({
   scrollView: {
@@ -107,25 +107,25 @@ export default class HomeScreen extends React.Component {
       const authUser = u && JSON.parse(u).user;
 
       if (authUser) {
-        database()
-          .ref(
-            '/user/' + authUser.email.toLowerCase().trim().split('.').join('_'),
-          )
-          .once('value')
-          .then((snapshot) => {
-            const user = snapshot.val();
-            console.log('KEY', user);
+        firestore()
+          .collection('users')
+          .where('email', '==', authUser.email.toLowerCase().trim())
+          .get()
+          .then((u) => {
+            const user: User = u.docs[0] && u.docs[0].data();
             if (user) {
-              database()
-                .ref('/restaurant/' + user.restaurantKey)
-                .once('value')
-                .then((snapshot) => {
-                  const restaurant = snapshot.val();
-                  // console.log('RESTAURANT', restaurant);
-                  this.setState({user, restaurant}, () => {
-                    this.initMessaging.bind(self)();
-                    this.subscribeOrders.bind(self)();
-                  });
+              firestore()
+                .collection('shops')
+                .doc(user.shopId)
+                .get()
+                .then((s) => {
+                  const shop = s.data();
+                  if (shop) {
+                    this.setState({user, shop}, () => {
+                      this.initMessaging.bind(self)();
+                      this.subscribeOrders.bind(self)();
+                    });
+                  }
                 });
             }
           });
@@ -141,12 +141,6 @@ export default class HomeScreen extends React.Component {
   initMessaging() {
     messaging().setBackgroundMessageHandler(async (remoteMessage) => {
       console.log('Message handled in the background!', remoteMessage);
-    });
-    messaging().onMessage(async (remoteMessage) => {
-      // Alert.alert(
-      //   remoteMessage.notification.title,
-      //   remoteMessage.notification.body,
-      // );
     });
 
     AsyncStorage.getItem('fcm_token').then((u: any) => {
@@ -164,11 +158,9 @@ export default class HomeScreen extends React.Component {
                 tks = [];
               }
               tks.push(fcmToken);
-              database()
-                .ref('/restaurant/' + this.state.restaurant.key)
-                .update({
-                  fcmTokens: tks,
-                });
+              firestore().collection('shops').doc(this.state.shop.uid).update({
+                fcmTokens: tks,
+              });
             } else {
               console.log('Failed', 'No token received');
             }
@@ -177,25 +169,19 @@ export default class HomeScreen extends React.Component {
     });
   }
 
-  formatHours(date) {
-    return moment(date).format('HH:mm');
-  }
-
   subscribeOrders() {
-    console.log('STATE REST', this.state.restaurant);
-
-    database()
-      .ref('/order')
-      .orderByChild('restaurantKey')
-      .equalTo(this.state.restaurant.key)
-      .on('value', (results) => {
+    firestore()
+      .collection('orders')
+      .where('shopId', '==', this.state.shop.uid)
+      .get()
+      .then((s) => {
         const orders = [];
         let pendingOrders = 0;
         let viewedOrders = 0;
         let preparedOrders = 0;
         let deliveringOrder = null;
-        results.forEach((doc: DataSnapshot) => {
-          const order: Order = doc.val();
+        s.docs.forEach((doc) => {
+          const order: Order = doc.data();
           if (order.status !== 'delivered' && order.status !== 'completed') {
             order.status === 'pending'
               ? pendingOrders++
@@ -225,7 +211,7 @@ export default class HomeScreen extends React.Component {
               style={
                 order.status === 'pending'
                   ? styles.statePending
-                  : order.status === 'ready' || order.status === 'sent'
+                  : order.status === 'ready'
                   ? styles.stateReady
                   : styles.stateViewed
               }>
@@ -234,22 +220,20 @@ export default class HomeScreen extends React.Component {
           </Paragraph>
           <Paragraph style={styles.paragraph}>
             <Text style={styles.label}>Hora de Entrega (no cliente): </Text>
-            <Text style={styles.value}>
-              {this.formatHours(order.deliveryDate)}
-            </Text>
+            <Text style={styles.value}>{order.arrivalExpectedAt}</Text>
           </Paragraph>
           <Paragraph style={styles.paragraph}>
             <Text style={styles.label}>Referência: </Text>
-            <Text style={styles.value}>{order.reference}</Text>
+            <Text style={styles.value}>{order.uid}</Text>
           </Paragraph>
           <Paragraph style={styles.paragraph}>
             <Text style={styles.label}>Artigos: </Text>
             <Text>
-              {order.items.map((o) => {
+              {order.orderItems.map((o) => {
                 return (
                   <Paragraph style={styles.artigo} key={o.key}>
                     {'\n\t\t'}
-                    {o.quantity} x {o?.name} - €{o.price.toFixed(2)}
+                    {o.quantity} x {o?.name} - €{o.price.toFixed(2)} (cada)
                     {o.optionsSelected &&
                       o.optionsSelected.map((p) => {
                         return (
@@ -269,7 +253,7 @@ export default class HomeScreen extends React.Component {
           </Paragraph>
           <Paragraph style={styles.paragraph}>
             <Text style={styles.label}>Total: </Text>
-            <Text style={styles.value}>€{this.calculateCost(order)}</Text>
+            <Text style={styles.value}>€{order.subTotal} (s/entrega)</Text>
           </Paragraph>
           <Paragraph style={styles.paragraph}>
             <Text style={styles.label}>Notas: </Text>
@@ -278,14 +262,14 @@ export default class HomeScreen extends React.Component {
           <Paragraph style={styles.paragraph}>
             <Text style={styles.label}>Cliente: </Text>
             <Text style={styles.value}>
-              {order.userName || 'Não registou nome.'}
+              {(order.user && order.user.name) || 'Não registou nome.'}
             </Text>
           </Paragraph>
           <Paragraph style={styles.paragraph}>
             <Text style={styles.label}>Telefone Cliente: </Text>
             <Text style={styles.value}>{order.phoneNumber}</Text>
           </Paragraph>
-          {order.orderType === 'delivery' &&
+          {order.type === 'delivery' &&
             (order.status === 'sent' ||
               order.status === 'ready' ||
               order.status === 'assigned' ||
@@ -319,21 +303,7 @@ export default class HomeScreen extends React.Component {
               Preparado
             </Button>
           )}
-          {order.orderType === 'delivery' &&
-            (order.status === 'sent' ||
-              order.status === 'ready' ||
-              order.status === 'assigned' ||
-              order.status === 'bringing') && (
-              <>
-                <Button
-                  style={styles.button}
-                  mode={'contained'}
-                  onPress={() => this.openDrivers()}>
-                  Ver Estafetas
-                </Button>
-              </>
-            )}
-          {order.orderType !== 'delivery' &&
+          {order.type !== 'delivery' &&
             (order.status === 'sent' || order.status === 'ready') && (
               <Button
                 style={styles.button}
@@ -347,27 +317,41 @@ export default class HomeScreen extends React.Component {
     );
   }
 
-  openDrivers() {
-    Linking.openURL('https://scuverdeliver.web.app/drivers');
-  }
-
   viewed(order: Order) {
-    database()
-      .ref('/order/' + order.key)
-      .update({
-        status: 'viewed',
-        viewedAt: new Date(),
-      });
+    let message = 'Confirma que irá começar a preparar a encomenda?';
+    Alert.alert(
+      'Começar Encomenda',
+      message,
+      [
+        {
+          text: 'Não',
+          onPress: () => console.log('Não começa.'),
+          style: 'cancel',
+        },
+        {
+          text: 'Sim',
+          onPress: () => {
+            order.log.push('Viewed at ' + new Date());
+            order.status = 'viewed';
+            firestore().collection('orders').doc(order.uid).update({
+              log: order.log,
+              status: order.status,
+            });
+          },
+        },
+      ],
+      {cancelable: false},
+    );
   }
 
   ready(order: Order) {
     let message =
       'Confirma que a encomenda está pronta para entrega (ou estará pronta em menos de 10 minutos)?';
-    if (order.orderType === 'delivery') {
+    if (order.type === 'delivery') {
       message +=
         '\n\nAo confirmar irá ser chamado um estafeta para recolher a encomenda.';
     }
-    if (order.orderType !== 'delivery') {
+    if (order.type !== 'delivery') {
       message +=
         '\n\nAo confirmar será dada indicação ao cliente que pode recolher a encomenda.';
     }
@@ -383,12 +367,12 @@ export default class HomeScreen extends React.Component {
         {
           text: 'Sim',
           onPress: () => {
-            database()
-              .ref('/order/' + order.key)
-              .update({
-                status: 'sent',
-                readyAt: new Date(),
-              });
+            order.log.push('Ready at ' + new Date());
+            order.status = 'ready';
+            firestore().collection('orders').doc(order.uid).update({
+              log: order.log,
+              status: order.status,
+            });
           },
         },
       ],
@@ -397,64 +381,12 @@ export default class HomeScreen extends React.Component {
   }
 
   complete(order: Order) {
-    database()
-      .ref('/order/' + order.key)
-      .update({
-        status: 'complete',
-        completedAt: new Date(),
-      });
-  }
-
-  orderWithinDistance(order: Order) {
-    if (
-      order.restaurantAddress &&
-      order.restaurantAddress.coordinates &&
-      order.restaurantAddress.coordinates.latitude
-    ) {
-      const driverRadius =
-        (this.state.user && this.state.user.realDeliveryRadius) || 3;
-      const distance = this.haversineDistance(
-        order.restaurantAddress.coordinates.latitude,
-        order.restaurantAddress.coordinates.longitude,
-      );
-      const isWhithinRadius = distance < driverRadius;
-      return isWhithinRadius;
-    }
-  }
-
-  calculateCost(order) {
-    let cost =
-      order.total ||
-      order.subTotal +
-        (order.deliveryFee === 0
-          ? 0
-          : order.deliveryFee
-          ? order.deliveryFee
-          : 1.75);
-    if (order.promotion && !order.promotion.used) {
-      cost -= order.promotion.amount;
-    }
-    return cost;
-  }
-
-  haversineDistance(destLat, destLng) {
-    const toRadian = (angle) => (Math.PI / 180) * angle;
-    const distance = (a, b) => (Math.PI / 180) * (a - b);
-    const RADIUS_OF_EARTH_IN_KM = 6371;
-
-    const dLat = distance(this.state.latitude, destLat);
-    const dLon = distance(this.state.longitude, destLng);
-
-    const lat1 = toRadian(this.state.latitude);
-    const lat2 = toRadian(destLat);
-
-    // Haversine Formula
-    const a =
-      Math.pow(Math.sin(dLat / 2), 2) +
-      Math.pow(Math.sin(dLon / 2), 2) * Math.cos(lat1) * Math.cos(lat2);
-    const c = 2 * Math.asin(Math.sqrt(a));
-
-    return RADIUS_OF_EARTH_IN_KM * c;
+    order.log.push('Completed at ' + new Date());
+    order.status = 'completed';
+    firestore().collection('orders').doc(order.uid).update({
+      log: order.log,
+      status: order.status,
+    });
   }
 
   render() {
@@ -471,23 +403,9 @@ export default class HomeScreen extends React.Component {
                   {this.state && this.state.pendingOrders}
                 </Text>
               </Paragraph>
-              {/*<Paragraph>*/}
-              {/*  <Text style={styles.label}>Encomendas em Preparação: </Text>*/}
-              {/*  <Text style={styles.value}>*/}
-              {/*    {this.state && this.state.viewedOrders}*/}
-              {/*  </Text>*/}
-              {/*</Paragraph>*/}
-              {/*<Paragraph>*/}
-              {/*  <Text style={styles.label}>Encomendas para Entrega: </Text>*/}
-              {/*  <Text style={styles.value}>*/}
-              {/*    {this.state && this.state.preparedOrders}*/}
-              {/*  </Text>*/}
-              {/*</Paragraph>*/}
             </>
           )}
-          {this.state && this.state.deliveringOrder
-            ? this.renderOrder(this.state.deliveringOrder)
-            : this.state.orders}
+          {this.state && this.state.orders}
         </ScrollView>
       </SafeAreaView>
     );

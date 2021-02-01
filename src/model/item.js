@@ -1,18 +1,27 @@
-import {ItemOption} from './itemOption';
-
 export class Item {
-  key: string;
-  id: number;
-  name: string;
-  description: string;
-  category: string;
-  tax: number;
-  price: number;
-  available: boolean = true;
-  amountMainOptionsRequired: number = 0;
-  options: ItemOption[] = [];
-  picture: string;
-  isWeightBased: boolean = false;
-  minWeight: number = 1;
-  maxWeight: number = 5;
+  constructor(
+    uid = '',
+    name = '',
+    description = '',
+    tax = 0,
+    price = 0,
+    available = true,
+    photoUrl = '',
+    isWeightBased = false,
+    minWeight = 1,
+    maxWeight = 5,
+    optionGroupsId = [],
+  ) {
+    this.uid = uid;
+    this.name = name;
+    this.description = description;
+    this.tax = tax;
+    this.price = price;
+    this.available = available;
+    this.photoUrl = photoUrl;
+    this.isWeightBased = isWeightBased;
+    this.minWeight = minWeight;
+    this.maxWeight = maxWeight;
+    this.optionGroupsId = optionGroupsId;
+  }
 }

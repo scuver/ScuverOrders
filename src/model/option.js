@@ -1,8 +1,7 @@
 export class Option {
-  uid: string;
-  restaurantId: string;
-  name: string;
-  price: number;
-  isMain: boolean;
-  isExtra: boolean;
+  constructor(name = '', price = 0, description = '') {
+    this.name = name;
+    this.price = price;
+    this.description = description;
+  }
 }
