@@ -182,7 +182,7 @@ export default class HomeScreen extends React.Component {
         let deliveringOrder = null;
         s.docs.forEach((doc) => {
           const order: Order = doc.data();
-          if (order.status !== 'delivered' && order.status !== 'completed') {
+          if (order.status !== 'completed') {
             order.status === 'pending'
               ? pendingOrders++
               : order.status === 'viewed'
