@@ -11,15 +11,14 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import AdminScreen from './screens/AdminScreen';
 
 const firebaseConfig = {
-  apiKey: 'AIzaSyDPHcaVV6I0RnWqFnbv2BrfZi6dgb0LX5I',
-  authDomain: 'eatmatic-143319.firebaseapp.com',
-  databaseURL: 'https://eatmatic-143319.firebaseio.com',
-  // databaseURL: 'https://eatmatic-143319-8b6f2.firebaseio.com',
-  projectId: 'eatmatic-143319',
-  storageBucket: 'eatmatic-143319.appspot.com',
-  messagingSenderId: '1088252386731',
-  appId: '1:1088252386731:web:3174573f37cab667a986ee',
-  measurementId: 'G-DLKYKBH02H',
+  apiKey: 'AIzaSyDxiMAmLUqiYpWyDipDljWYRsYvKCho7Y0',
+  authDomain: 'scuver-data.firebaseapp.com',
+  databaseURL:
+    'https://scuver-data-default-rtdb.europe-west1.firebasedatabase.app',
+  projectId: 'scuver-data',
+  storageBucket: 'scuver-data.appspot.com',
+  messagingSenderId: '326732084118',
+  appId: '1:326732084118:web:2ad29e73e90879d830e3b7',
 };
 
 if (firebase.apps.length === 0) {
