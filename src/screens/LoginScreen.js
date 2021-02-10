@@ -24,13 +24,15 @@ const LoginScreen = ({navigation}) => {
   const [snackText, setSnackText] = useState(false);
 
   const signIn = () => {
-    console.log('email', email);
-    console.log('password', password);
-    AsyncStorage.setItem('email', email);
-    AsyncStorage.setItem('password', password);
+    const mail = email ? email.trim().toLowerCase() : ' ';
+    const pass = password ? password.trim() : ' ';
+    console.log('email', mail);
+    console.log('password', pass);
+    AsyncStorage.setItem('email', mail);
+    AsyncStorage.setItem('password', pass);
     firebase
       .auth()
-      .signInWithEmailAndPassword(email || ' ', password || ' ')
+      .signInWithEmailAndPassword(mail, pass)
       .then((user) => {
         console.log('user', user);
         if (user) {
