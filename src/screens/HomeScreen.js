@@ -153,7 +153,7 @@ export default class HomeScreen extends React.Component {
             if (fcmToken) {
               console.log('Your Firebase Token is:', fcmToken);
               AsyncStorage.setItem('fcm_token', fcmToken);
-              let tks = this.state.restaurant.fcmTokens;
+              let tks = this.state.shop.fcmTokens;
               if (!tks) {
                 tks = [];
               }
@@ -170,11 +170,12 @@ export default class HomeScreen extends React.Component {
   }
 
   subscribeOrders() {
+    console.log('this.state.shop.uid', this.state.shop.uid);
     firestore()
       .collection('orders')
-      .where('shopId', '==', this.state.shop.uid)
-      .get()
-      .then((s) => {
+      .where('shop.uid', '==', this.state.shop.uid)
+      .onSnapshot((s) => {
+        console.log('s', s);
         const orders = [];
         let pendingOrders = 0;
         let viewedOrders = 0;
