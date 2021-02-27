@@ -130,9 +130,9 @@ export default class HomeScreen extends React.Component {
             }
           });
       } else {
-        Alert.alert('Info', 'Por favor efetue o login.', null, {
-          cancelable: true,
-        });
+        // Alert.alert('Info', 'Por favor efetue o login.', null, {
+        //   cancelable: true,
+        // });
         this.props.navigation.navigate('Login');
       }
     });
@@ -143,7 +143,7 @@ export default class HomeScreen extends React.Component {
       console.log('Message handled in the background!', remoteMessage);
     });
 
-    AsyncStorage.getItem('fcm_token').then((u: any) => {
+    AsyncStorage.getItem('fcm_token_scuver_order').then((u: any) => {
       console.log('u', u);
       if (!u) {
         console.log('Getting Firebase Token');
@@ -152,7 +152,7 @@ export default class HomeScreen extends React.Component {
           .then((fcmToken) => {
             if (fcmToken) {
               console.log('Your Firebase Token is:', fcmToken);
-              AsyncStorage.setItem('fcm_token', fcmToken);
+              AsyncStorage.setItem('fcm_token_scuver_order', fcmToken);
               let tks = this.state.shop.fcmTokens;
               if (!tks) {
                 tks = [];
@@ -174,37 +174,34 @@ export default class HomeScreen extends React.Component {
     firestore()
       .collection('orders')
       .where('shop.uid', '==', this.state.shop.uid)
+      .where('status', 'in', ['pendin', 'viewed', 'ready', 'bringing'])
       .onSnapshot((s) => {
-        console.log('s', s);
+        // console.log('s', s);
         const orders = [];
         let pendingOrders = 0;
         let viewedOrders = 0;
         let preparedOrders = 0;
-        let deliveringOrder = null;
         s.docs.forEach((doc) => {
           const order: Order = doc.data();
-          if (order.status !== 'completed') {
-            order.status === 'pending'
-              ? pendingOrders++
-              : order.status === 'viewed'
-              ? viewedOrders++
-              : preparedOrders++;
-            orders.push(this.renderOrder(order));
-          }
+          order.status === 'pending'
+            ? pendingOrders++
+            : order.status === 'viewed'
+            ? viewedOrders++
+            : preparedOrders++;
+          orders.push(this.renderOrder(order));
         });
         this.setState({
           orders,
           pendingOrders,
           viewedOrders,
           preparedOrders,
-          deliveringOrder,
         });
       });
   }
 
   renderOrder(order: Order) {
     return (
-      <Card key={order.key} style={styles.card}>
+      <Card key={order.uid} style={styles.card}>
         <Card.Content>
           <Paragraph style={styles.paragraph}>
             <Text style={styles.label}>Estado: </Text>
@@ -225,7 +222,9 @@ export default class HomeScreen extends React.Component {
           </Paragraph>
           <Paragraph style={styles.paragraph}>
             <Text style={styles.label}>Referência: </Text>
-            <Text style={styles.value}>{order.uid}</Text>
+            <Text style={styles.value}>
+              {order.uid?.substring(order.uid.length - 4)}
+            </Text>
           </Paragraph>
           <Paragraph style={styles.paragraph}>
             <Text style={styles.label}>Artigos: </Text>
@@ -241,6 +240,7 @@ export default class HomeScreen extends React.Component {
                           <>
                             {'\n\t\t\t\t'}
                             {p &&
+                              p.map &&
                               p.map((opt) => {
                                 return <>[{opt?.name}]</>;
                               })}
@@ -263,29 +263,37 @@ export default class HomeScreen extends React.Component {
           <Paragraph style={styles.paragraph}>
             <Text style={styles.label}>Cliente: </Text>
             <Text style={styles.value}>
-              {(order.user && order.user.name) || 'Não registou nome.'}
+              {(order.user && order.user.name) || 'Não registou nome.'} -{' '}
+              <Text
+                style={styles.link}
+                onPress={() =>
+                  Linking.openURL(`tel:${order.user.phoneNumber}`)
+                }>
+                {order.user.phoneNumber}
+              </Text>
             </Text>
           </Paragraph>
           <Paragraph style={styles.paragraph}>
             <Text style={styles.label}>Telefone Cliente: </Text>
             <Text style={styles.value}>{order.phoneNumber}</Text>
           </Paragraph>
-          {order.type === 'delivery' &&
-            (order.status === 'sent' ||
-              order.status === 'ready' ||
-              order.status === 'assigned' ||
-              order.status === 'bringing') && (
-              <>
-                <Paragraph style={styles.paragraph}>
-                  <Text style={styles.label}>Estafeta: </Text>
-                  <Text style={styles.value}>
-                    {order.driver
-                      ? order.driver
-                      : 'Ainda não foi aceite por nenhum estafeta.'}
+          {order.type === 'delivery' && order.driver && (
+            <>
+              <Paragraph style={styles.paragraph}>
+                <Text style={styles.label}>Estafeta: </Text>
+                <Text style={styles.value}>
+                  {order.driver.name || order.driver.email} -{' '}
+                  <Text
+                    style={styles.link}
+                    onPress={() =>
+                      Linking.openURL(`tel:${order.driver.phoneNumber}`)
+                    }>
+                    {order.driver.phoneNumber}
                   </Text>
-                </Paragraph>
-              </>
-            )}
+                </Text>
+              </Paragraph>
+            </>
+          )}
         </Card.Content>
         <Card.Actions>
           {order.status === 'pending' && (
@@ -319,7 +327,7 @@ export default class HomeScreen extends React.Component {
   }
 
   viewed(order: Order) {
-    let message = 'Confirma que irá começar a preparar a encomenda?';
+    let message = 'Confirma que visualizou a encomenda?';
     Alert.alert(
       'Começar Encomenda',
       message,
