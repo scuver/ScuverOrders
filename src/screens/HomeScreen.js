@@ -44,7 +44,7 @@ const styles = StyleSheet.create({
   statePending: {
     color: '#ff0022',
   },
-  statebatatas: {
+  stateViewed: {
     color: '#ff8b00',
   },
   stateReady: {
@@ -69,7 +69,7 @@ const styles = StyleSheet.create({
 const states = {
   completed: 'Entregue',
   pending: 'Pendente',
-  batatas: 'Em Preparação',
+  viewed: 'Em Preparação',
   sent: 'Pronta para Entrega',
   ready: 'Pronta para Entrega',
   assigned: 'A Recolher',
@@ -85,7 +85,7 @@ export default class HomeScreen extends React.Component {
     this.state = {
       orders: [],
       user: null,
-      batatasOrders: 0,
+      viewedOrders: 0,
       preparedOrders: 0,
       appState: AppState.currentState,
       player: new Player('whoosh.mp3', {
@@ -322,26 +322,26 @@ export default class HomeScreen extends React.Component {
     firestore()
       .collection('orders')
       .where('shop.uid', '==', this.state.shop.uid)
-      .where('status', 'in', ['pending', 'batatas', 'ready', 'bringing'])
+      .where('status', 'in', ['pending', 'viewed', 'ready', 'bringing'])
       .onSnapshot((s) => {
         // console.log('s', s);
         const orders = [];
         let pendingOrders = 0;
-        let batatasOrders = 0;
+        let viewedOrders = 0;
         let preparedOrders = 0;
         s.docs.forEach((doc) => {
           const order: Order = doc.data();
           order.status === 'pending'
             ? pendingOrders++
-            : order.status === 'batatas'
-            ? batatasOrders++
+            : order.status === 'viewed'
+            ? viewedOrders++
             : preparedOrders++;
           orders.push(this.renderOrder(order));
         });
         this.setState({
           orders,
           pendingOrders,
-          batatasOrders,
+          viewedOrders,
           preparedOrders,
         });
       });
@@ -359,7 +359,7 @@ export default class HomeScreen extends React.Component {
                   ? styles.statePending
                   : order.status === 'ready'
                   ? styles.stateReady
-                  : styles.statebatatas
+                  : styles.stateViewed
               }>
               {states[order.status || 'pending']}
             </Text>
@@ -448,11 +448,11 @@ export default class HomeScreen extends React.Component {
             <Button
               style={styles.button}
               mode={'contained'}
-              onPress={() => this.batatas(order)}>
+              onPress={() => this.viewed(order)}>
               Visualizado
             </Button>
           )}
-          {order.status === 'batatas' && (
+          {order.status === 'viewed' && (
             <Button
               style={styles.button}
               mode={'contained'}
@@ -474,7 +474,7 @@ export default class HomeScreen extends React.Component {
     );
   }
 
-  batatas(order: Order) {
+  viewed(order: Order) {
     let message = 'Confirma que visualizou a encomenda?';
     Alert.alert(
       'Começar Encomenda',
@@ -488,8 +488,8 @@ export default class HomeScreen extends React.Component {
         {
           text: 'Sim',
           onPress: () => {
-            order.log.push('batatas at ' + new Date());
-            order.status = 'batatas';
+            order.log.push('Viewed at ' + new Date());
+            order.status = 'viewed';
             firestore().collection('orders').doc(order.uid).update({
               log: order.log,
               status: order.status,
