@@ -2,6 +2,7 @@ import React from 'react';
 import {Button, Card, Paragraph, Text} from 'react-native-paper';
 import {
   Alert,
+  AppState,
   Linking,
   SafeAreaView,
   ScrollView,
@@ -9,10 +10,13 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-community/async-storage';
 import {Order} from '../model/order';
-import moment from 'moment';
 import messaging from '@react-native-firebase/messaging';
 import firestore from '@react-native-firebase/firestore';
 import {User} from '../model/user';
+import {Player} from '@react-native-community/audio-toolkit';
+const Sound = require('react-native-sound');
+
+Sound.setCategory('Alarm');
 
 const styles = StyleSheet.create({
   scrollView: {
@@ -40,7 +44,7 @@ const styles = StyleSheet.create({
   statePending: {
     color: '#ff0022',
   },
-  stateViewed: {
+  statebatatas: {
     color: '#ff8b00',
   },
   stateReady: {
@@ -65,7 +69,7 @@ const styles = StyleSheet.create({
 const states = {
   completed: 'Entregue',
   pending: 'Pendente',
-  viewed: 'Em Preparação',
+  batatas: 'Em Preparação',
   sent: 'Pronta para Entrega',
   ready: 'Pronta para Entrega',
   assigned: 'A Recolher',
@@ -74,13 +78,19 @@ const states = {
 };
 
 export default class HomeScreen extends React.Component {
+  backgroundInterval;
+  foregroundInterval;
   constructor(props) {
     super(props);
     this.state = {
       orders: [],
       user: null,
-      viewedOrders: 0,
+      batatasOrders: 0,
       preparedOrders: 0,
+      appState: AppState.currentState,
+      player: new Player('whoosh.mp3', {
+        continuesToPlayInBackground: true,
+      }),
     };
 
     //firebase.database().settings({experimentalForceLongPolling: true});
@@ -95,10 +105,98 @@ export default class HomeScreen extends React.Component {
       AsyncStorage.setItem('visited', true);
       this.forceUpdate();
     }
+    AppState.addEventListener('change', this._handleAppStateChange);
+    AsyncStorage.setItem('state', 'foreground');
+    if (this.foregroundInterval) {
+      console.log('componentWillUnmount clear foregroundInterval');
+      clearInterval(this.foregroundInterval);
+    }
+    this.foregroundInterval = setInterval(() => {
+      console.log('fore');
+      if (
+        this.state.appState === 'active' ||
+        this.state.appState === 'foreground'
+      ) {
+        if (this.state.pendingOrders) {
+          // this.player = new Player('whoosh.mp3', {
+          //   continuesToPlayInBackground: false,
+          // });
+          this.state.player.looping = true;
+          this.state.player.play();
+        } else {
+          console.log('ELSE', this.state);
+          this.state.player.looping = false;
+          this.state.player?.pause();
+          // console.log('ELSE', this.state);
+          // this.state.player.looping = false;
+          // this.state.player?.pause();
+          // this.state.player?.stop();
+          // this.state.player.destroy();
+          // this.setState({player: null});
+          if (!this.state.pendingOrders) {
+            AsyncStorage.setItem('stop', 'true');
+          }
+        }
+      }
+      // AsyncStorage.getItem('state').then((state) => {
+      //   console.log('state', state);
+    }, 5000);
+    // }, 5000);
+    // this.foregroundInterval = setInterval(() => {
+    //   if (this.state && this.state.pendingOrders) {
+    //     AsyncStorage.setItem('play', 'true');
+    //   }
+    //   AsyncStorage.getItem('play').then((play) => {
+    //     if (play && this.state && this.state.pendingOrders) {
+    //       console.log('fore this.player.play()', this.state.pendingOrders);
+    //       this.player = new Player('whoosh.mp3', {
+    //         continuesToPlayInBackground: true,
+    //       });
+    //       this.player.play();
+    //     } else {
+    //       this.player.destroy();
+    //       AsyncStorage.removeItem('play');
+    //     }
+    //   });
+    //   // console.log('fore', this.state.pendingOrders);
+    //   // if (this.state && this.state.pendingOrders) {
+    //   //
+    //   // } else {
+    //   //   if (this.backgroundInterval) {
+    //   //     console.log('foregroundInterval clear backgroundInterval');
+    //   //     clearInterval(this.backgroundInterval);
+    //   //   }
+    //   //   this.player.stop();
+    //   //   this.player.pause();
+    //   // }
+    // }, 4000);
   }
+
+  _handleAppStateChange = (nextAppState) => {
+    console.log('nextAppState', nextAppState);
+    if (nextAppState === 'active') {
+      AsyncStorage.setItem('state', 'foreground');
+    } else {
+      AsyncStorage.setItem('state', 'background');
+      if (this.state.player) {
+        this.state.player.looping = false;
+        this.state.player.pause();
+      }
+    }
+    this.setState({appState: nextAppState});
+  };
 
   componentWillUnmount() {
     this._unsubscribe();
+    AppState.removeEventListener('change', this._handleAppStateChange);
+    if (this.foregroundInterval) {
+      console.log('componentWillUnmount clear foregroundInterval');
+      clearInterval(this.foregroundInterval);
+    }
+    if (this.backgroundInterval) {
+      console.log('componentWillUnmount clear backgroundInterval');
+      clearInterval(this.backgroundInterval);
+    }
   }
 
   getCurrentUser() {
@@ -140,7 +238,57 @@ export default class HomeScreen extends React.Component {
 
   initMessaging() {
     messaging().setBackgroundMessageHandler(async (remoteMessage) => {
-      console.log('Message handled in the background!', remoteMessage);
+      console.log(
+        'Message handled in the background!',
+        this.state.appState,
+        remoteMessage,
+      );
+      if (this.state.appState === 'background') {
+        this.state.player.looping = true;
+        this.state.player.play();
+        AsyncStorage.removeItem('stop');
+        setInterval(() => {
+          console.log('BACK INTERVAL');
+          AsyncStorage.getItem('stop').then((stop) => {
+            console.log('stop', stop);
+            if (stop) {
+              this.state.player.looping = false;
+              this.state.player?.pause();
+            } else {
+              this.state.player.looping = true;
+              this.state.player.play();
+            }
+          });
+        });
+      }
+      // console.log('this.state', this.state);
+      // AsyncStorage.removeItem('stop');
+      // if (this.backgroundInterval) {
+      //   console.log('componentWillUnmount clear backgroundInterval');
+      //   clearInterval(this.backgroundInterval);
+      // }
+      this.state.player.play();
+      // this.backgroundInterval = setInterval(() => {
+      AsyncStorage.getItem('state').then((state) => {
+        console.log('state', state);
+        console.log("state === 'background'", state === 'background');
+        this.state.player.looping = true;
+        this.state.player.play();
+        if (state === 'background') {
+          // this.player = new Player('whoosh.mp3', {
+          //   continuesToPlayInBackground: true,
+          // });
+          this.state.player.looping = true;
+          this.state.player.play();
+        } else {
+          if (this.state.player) {
+            this.state.player.looping = false;
+            this.state.player.pause();
+          }
+        }
+      });
+      //   console.log('back', this.state && this.state.pendingOrders);
+      // }, 5000);
     });
 
     AsyncStorage.getItem('fcm_token_scuver_order').then((u: any) => {
@@ -174,26 +322,26 @@ export default class HomeScreen extends React.Component {
     firestore()
       .collection('orders')
       .where('shop.uid', '==', this.state.shop.uid)
-      .where('status', 'in', ['pendin', 'viewed', 'ready', 'bringing'])
+      .where('status', 'in', ['pending', 'batatas', 'ready', 'bringing'])
       .onSnapshot((s) => {
         // console.log('s', s);
         const orders = [];
         let pendingOrders = 0;
-        let viewedOrders = 0;
+        let batatasOrders = 0;
         let preparedOrders = 0;
         s.docs.forEach((doc) => {
           const order: Order = doc.data();
           order.status === 'pending'
             ? pendingOrders++
-            : order.status === 'viewed'
-            ? viewedOrders++
+            : order.status === 'batatas'
+            ? batatasOrders++
             : preparedOrders++;
           orders.push(this.renderOrder(order));
         });
         this.setState({
           orders,
           pendingOrders,
-          viewedOrders,
+          batatasOrders,
           preparedOrders,
         });
       });
@@ -211,7 +359,7 @@ export default class HomeScreen extends React.Component {
                   ? styles.statePending
                   : order.status === 'ready'
                   ? styles.stateReady
-                  : styles.stateViewed
+                  : styles.statebatatas
               }>
               {states[order.status || 'pending']}
             </Text>
@@ -300,11 +448,11 @@ export default class HomeScreen extends React.Component {
             <Button
               style={styles.button}
               mode={'contained'}
-              onPress={() => this.viewed(order)}>
+              onPress={() => this.batatas(order)}>
               Visualizado
             </Button>
           )}
-          {order.status === 'viewed' && (
+          {order.status === 'batatas' && (
             <Button
               style={styles.button}
               mode={'contained'}
@@ -326,7 +474,7 @@ export default class HomeScreen extends React.Component {
     );
   }
 
-  viewed(order: Order) {
+  batatas(order: Order) {
     let message = 'Confirma que visualizou a encomenda?';
     Alert.alert(
       'Começar Encomenda',
@@ -340,8 +488,8 @@ export default class HomeScreen extends React.Component {
         {
           text: 'Sim',
           onPress: () => {
-            order.log.push('Viewed at ' + new Date());
-            order.status = 'viewed';
+            order.log.push('batatas at ' + new Date());
+            order.status = 'batatas';
             firestore().collection('orders').doc(order.uid).update({
               log: order.log,
               status: order.status,

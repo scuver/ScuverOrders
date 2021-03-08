@@ -8,6 +8,8 @@ target 'ScuverOrders' do
 
   use_react_native!(:path => config["reactNativePath"])
 
+  pod 'ReactNativeAudioToolkit', :path => '../node_modules/@react-native-community/audio-toolkit'
+
   target 'ScuverOrdersTests' do
     inherit! :complete
     # Pods for testing
