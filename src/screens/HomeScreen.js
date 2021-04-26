@@ -41,6 +41,11 @@ const styles = StyleSheet.create({
     fontSize: 18,
     marginTop: '10%',
   },
+  opcao: {
+    fontSize: 16,
+    marginTop: '10%',
+    color: '#50959d',
+  },
   statePending: {
     color: '#ff0022',
   },
@@ -63,6 +68,15 @@ const styles = StyleSheet.create({
   paragraph: {
     fontSize: 16,
     marginBottom: 10,
+  },
+  notes: {
+    fontSize: 20,
+    marginTop: '10%',
+    color: '#d55e1b',
+  },
+  hora: {
+    fontSize: 20,
+    textDecorationLine: 'underline',
   },
 });
 
@@ -367,7 +381,11 @@ export default class HomeScreen extends React.Component {
           </Paragraph>
           <Paragraph style={styles.paragraph}>
             <Text style={styles.label}>Hora de Entrega (no cliente): </Text>
-            <Text style={styles.value}>{order.arrivalExpectedAt}</Text>
+            <Text style={styles.hora}>
+              {order.arrivalExpectedAt.substring(
+                order.arrivalExpectedAt.length - 5,
+              )}
+            </Text>
           </Paragraph>
           <Paragraph style={styles.paragraph}>
             <Text style={styles.label}>Referência: </Text>
@@ -388,11 +406,19 @@ export default class HomeScreen extends React.Component {
                         return (
                           <>
                             {'\n\t\t\t\t'}
-                            {p &&
-                              p.map &&
+                            {p && p.map ? (
                               p.map((opt) => {
-                                return <>[{opt?.name}]</>;
-                              })}
+                                return (
+                                  <Text style={styles.opcao}>
+                                    {opt?.quantity} x {opt?.name}
+                                  </Text>
+                                );
+                              })
+                            ) : (
+                              <Text style={styles.opcao}>
+                                {p?.quantity} x {p?.name}
+                              </Text>
+                            )}
                           </>
                         );
                       })}
@@ -407,7 +433,7 @@ export default class HomeScreen extends React.Component {
           </Paragraph>
           <Paragraph style={styles.paragraph}>
             <Text style={styles.label}>Notas: </Text>
-            <Text style={styles.value}>{order.notes}</Text>
+            <Text style={styles.notes}>{order.notes}</Text>
           </Paragraph>
           <Paragraph style={styles.paragraph}>
             <Text style={styles.label}>Cliente: </Text>
