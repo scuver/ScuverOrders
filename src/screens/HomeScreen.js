@@ -247,19 +247,20 @@ export default class HomeScreen extends React.Component {
         this.state.player.looping = true;
         this.state.player.play();
         AsyncStorage.removeItem('stop');
-        setInterval(() => {
-          console.log('BACK INTERVAL');
+        let interval = setInterval(() => {
+          // console.log('BACK INTERVAL');
           AsyncStorage.getItem('stop').then((stop) => {
-            console.log('stop', stop);
+            // console.log('stop', stop);
             if (stop) {
               this.state.player.looping = false;
               this.state.player?.pause();
+              clearInterval(interval);
             } else {
               this.state.player.looping = true;
               this.state.player.play();
             }
           });
-        });
+        }, 5000);
       }
       // console.log('this.state', this.state);
       // AsyncStorage.removeItem('stop');
