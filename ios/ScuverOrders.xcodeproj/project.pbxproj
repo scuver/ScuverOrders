@@ -17,6 +17,7 @@
 		2DCD954D1E0B4F2C00145EB5 /* ScuverOrdersTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 00E356F21AD99517003FC87E /* ScuverOrdersTests.m */; };
 		6565F892CDAD3C359EF00E40 /* libPods-ScuverOrders-tvOSTests.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 1497926E4C1C912D263CBC3E /* libPods-ScuverOrders-tvOSTests.a */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
+		9C9870132627576600C04A9B /* Ionicons.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 9C9870122627576600C04A9B /* Ionicons.ttf */; };
 		AE1EB9C90C205E8B307D4E7B /* libPods-ScuverOrders.a in Frameworks */ = {isa = PBXBuildFile; fileRef = CC9EF580343F84EDCB48A704 /* libPods-ScuverOrders.a */; };
 		AF7A59DBDD99F7A06282C556 /* libPods-ScuverOrders-tvOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 2F6E8D1A08E9ACF8B3E51888 /* libPods-ScuverOrders-tvOS.a */; };
 		F9A4D144E1A60B62824B2F68 /* libPods-ScuverOrders-ScuverOrdersTests.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 1A1BA9669250F37FEACC99C2 /* libPods-ScuverOrders-ScuverOrdersTests.a */; };
@@ -59,6 +60,7 @@
 		2F6E8D1A08E9ACF8B3E51888 /* libPods-ScuverOrders-tvOS.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-ScuverOrders-tvOS.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		54F871A0F81863E0B007DD9F /* Pods-ScuverOrders-tvOS.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-ScuverOrders-tvOS.debug.xcconfig"; path = "Target Support Files/Pods-ScuverOrders-tvOS/Pods-ScuverOrders-tvOS.debug.xcconfig"; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = ScuverOrders/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		9C9870122627576600C04A9B /* Ionicons.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = Ionicons.ttf; path = "../node_modules/react-native-vector-icons/Fonts/Ionicons.ttf"; sourceTree = "<group>"; };
 		A00F8AB477906B5A8E0D55C3 /* Pods-ScuverOrders-ScuverOrdersTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-ScuverOrders-ScuverOrdersTests.debug.xcconfig"; path = "Target Support Files/Pods-ScuverOrders-ScuverOrdersTests/Pods-ScuverOrders-ScuverOrdersTests.debug.xcconfig"; sourceTree = "<group>"; };
 		A0A9BB953656C7F51B6F22D2 /* Pods-ScuverOrders.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-ScuverOrders.release.xcconfig"; path = "Target Support Files/Pods-ScuverOrders/Pods-ScuverOrders.release.xcconfig"; sourceTree = "<group>"; };
 		CC9EF580343F84EDCB48A704 /* libPods-ScuverOrders.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-ScuverOrders.a"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -134,13 +136,13 @@
 				E278AA4E4E616779A433493D /* Pods-ScuverOrders-tvOSTests.debug.xcconfig */,
 				0E7B3BB79ADD749A9B2C7AA0 /* Pods-ScuverOrders-tvOSTests.release.xcconfig */,
 			);
-			name = Pods;
 			path = Pods;
 			sourceTree = "<group>";
 		};
 		13B07FAE1A68108700A75B9A /* ScuverOrders */ = {
 			isa = PBXGroup;
 			children = (
+				9C98700D2627570400C04A9B /* Fonts */,
 				008F07F21AC5B25A0029DE68 /* main.jsbundle */,
 				13B07FAF1A68108700A75B9A /* AppDelegate.h */,
 				13B07FB01A68108700A75B9A /* AppDelegate.m */,
@@ -196,6 +198,14 @@
 				2D02E4901E0B4A5D006451C7 /* ScuverOrders-tvOSTests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		9C98700D2627570400C04A9B /* Fonts */ = {
+			isa = PBXGroup;
+			children = (
+				9C9870122627576600C04A9B /* Ionicons.ttf */,
+			);
+			name = Fonts;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -343,6 +353,7 @@
 			files = (
 				81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
+				9C9870132627576600C04A9B /* Ionicons.ttf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
