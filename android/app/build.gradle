@@ -132,7 +132,7 @@ android {
         applicationId "com.scuverorders"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 35
+        versionCode 40
         versionName "2.2"
         multiDexEnabled true
     }
