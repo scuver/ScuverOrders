@@ -2,7 +2,6 @@ import React from 'react';
 import {Button, Card, Paragraph, Text} from 'react-native-paper';
 import {
   Alert,
-  AppState,
   Linking,
   SafeAreaView,
   ScrollView,
@@ -13,10 +12,6 @@ import {Order} from '../model/order';
 import messaging from '@react-native-firebase/messaging';
 import firestore from '@react-native-firebase/firestore';
 import {User} from '../model/user';
-import {Player} from '@react-native-community/audio-toolkit';
-const Sound = require('react-native-sound');
-
-Sound.setCategory('Alarm');
 
 const styles = StyleSheet.create({
   scrollView: {
@@ -92,8 +87,6 @@ const states = {
 };
 
 export default class HomeScreen extends React.Component {
-  backgroundInterval;
-  foregroundInterval;
   constructor(props) {
     super(props);
     this.state = {
@@ -101,10 +94,6 @@ export default class HomeScreen extends React.Component {
       user: null,
       viewedOrders: 0,
       preparedOrders: 0,
-      appState: AppState.currentState,
-      player: new Player('whoosh.mp3', {
-        continuesToPlayInBackground: true,
-      }),
     };
 
     //firebase.database().settings({experimentalForceLongPolling: true});
@@ -119,55 +108,10 @@ export default class HomeScreen extends React.Component {
       AsyncStorage.setItem('visited', true);
       this.forceUpdate();
     }
-    AppState.addEventListener('change', this._handleAppStateChange);
-    AsyncStorage.setItem('state', 'foreground');
-    if (this.foregroundInterval) {
-      clearInterval(this.foregroundInterval);
-    }
-    this.foregroundInterval = setInterval(() => {
-      if (
-        this.state.appState === 'active' ||
-        this.state.appState === 'foreground'
-      ) {
-        if (this.state.pendingOrders) {
-          // this.player = new Player('whoosh.mp3', {
-          //   continuesToPlayInBackground: false,
-          // });
-          this.state.player.looping = true;
-          this.state.player.play();
-        } else {
-          this.state.player.looping = false;
-          this.state.player?.pause();
-          if (!this.state.pendingOrders) {
-            AsyncStorage.setItem('stop', 'true');
-          }
-        }
-      }
-    }, 5000);
   }
-
-  _handleAppStateChange = (nextAppState) => {
-    if (nextAppState === 'active') {
-      AsyncStorage.setItem('state', 'foreground');
-    } else {
-      AsyncStorage.setItem('state', 'background');
-      if (this.state.player) {
-        this.state.player.looping = false;
-        this.state.player.pause();
-      }
-    }
-    this.setState({appState: nextAppState});
-  };
 
   componentWillUnmount() {
     this._unsubscribe();
-    AppState.removeEventListener('change', this._handleAppStateChange);
-    if (this.foregroundInterval) {
-      clearInterval(this.foregroundInterval);
-    }
-    if (this.backgroundInterval) {
-      clearInterval(this.backgroundInterval);
-    }
   }
 
   getCurrentUser() {
@@ -194,6 +138,7 @@ export default class HomeScreen extends React.Component {
                       this.initMessaging.bind(self)();
                       this.subscribeOrders.bind(self)();
                     });
+                    AsyncStorage.setItem('shop_email', shop.email);
                   }
                 });
             }
@@ -207,37 +152,6 @@ export default class HomeScreen extends React.Component {
   initMessaging() {
     messaging().setBackgroundMessageHandler(async (remoteMessage) => {
       console.log('Message handled in the background!');
-      if (this.state.appState === 'background') {
-        this.state.player.looping = true;
-        this.state.player.play();
-        AsyncStorage.removeItem('stop');
-        let interval = setInterval(() => {
-          AsyncStorage.getItem('stop').then((stop) => {
-            if (stop) {
-              this.state.player.looping = false;
-              this.state.player?.pause();
-              clearInterval(interval);
-            } else {
-              this.state.player.looping = true;
-              this.state.player.play();
-            }
-          });
-        }, 5000);
-      }
-      this.state.player.play();
-      AsyncStorage.getItem('state').then((state) => {
-        this.state.player.looping = true;
-        this.state.player.play();
-        if (state === 'background') {
-          this.state.player.looping = true;
-          this.state.player.play();
-        } else {
-          if (this.state.player) {
-            this.state.player.looping = false;
-            this.state.player.pause();
-          }
-        }
-      });
     });
 
     AsyncStorage.getItem('fcm_token_scuver_order').then((u: any) => {
@@ -511,7 +425,7 @@ export default class HomeScreen extends React.Component {
         <ScrollView
           contentInsetAdjustmentBehavior="automatic"
           style={styles.scrollView}>
-          {this.state && !this.state.deliveringOrder && (
+          {this.state && (
             <>
               <Paragraph>
                 <Text style={styles.label}>Encomendas Pendentes: </Text>
